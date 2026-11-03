@@ -1,0 +1,31 @@
+{
+    "Team": {
+        "Name": "Collabspace",
+        "Members": [
+            {
+                "Id": 2501010220,
+                "Name": "Khush Gautam",
+                "GitHub Username": "Khush-Gautam",
+                "GitHub Link": "https://github.com/Khush-Gautam"
+            },
+            {
+                "Id": 2501010563,
+                "Name": "Vansh Kumar",
+                "GitHub Username": "vanshkumar2025",
+                "GitHub Link": "https://github.com/vanshkumar2025"
+            },
+            {
+                "Id": 2501010052,
+                "Name": "Amrit Raj",
+                "GitHub Username": "Amrit42-am",
+                "GitHub Link": "https://github.com/Amrit42-am"
+            },
+            {
+                "Id": 2501010685,
+                "Name": "Anay Maheshwari",
+                "GitHub Username": "anaymaheshwari762",
+                "GitHub Link": "https://github.com/anaymaheshwari762"
+            }
+        ]
+    }
+}
