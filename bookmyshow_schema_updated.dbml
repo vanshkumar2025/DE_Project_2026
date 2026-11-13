@@ -1,0 +1,243 @@
+Project BookMyShow {
+  database_type: 'PostgreSQL'
+  Note: '''
+  BookMyShow database schema, PostgreSQL 15+.
+
+  PostgreSQL-specific constraint not directly represented in DBML:
+  shows.no_overlapping_shows uses an EXCLUDE constraint with GiST over
+  screen_id and tstzrange(starts_at, ends_at, '[)'). Keep this constraint
+  in the PostgreSQL implementation. The btree_gist extension is required.
+  '''
+}
+
+// =============================================================
+// 1. CITIES
+// =============================================================
+Table bms.cities {
+  city_id integer [pk, not null]
+  city_name varchar(30) [not null]
+  state varchar(30) [not null]
+}
+
+// =============================================================
+// 2. MOVIES
+// =============================================================
+Table bms.movies {
+  movie_id integer [pk, not null]
+  title varchar(100) [not null]
+  language varchar(30) [not null]
+  certificate varchar(5) [not null]
+  duration_min smallint [not null]
+  release_date date [not null]
+
+  checks {
+    `certificate IN ('U', 'UA', 'A')` [name: 'movies_certificate_check']
+    `duration_min > 0` [name: 'movies_duration_min_check']
+  }
+}
+
+// =============================================================
+// 3. OFFERS
+// =============================================================
+Table bms.offers {
+  offer_code varchar(11) [pk, not null]
+  description text [not null]
+  discount_pct numeric(5,2) [not null]
+  max_discount numeric(12,2) [not null]
+  valid_from date [not null]
+  valid_to date [not null]
+
+  checks {
+    `discount_pct BETWEEN 0 AND 100` [name: 'offers_discount_pct_check']
+    `max_discount >= 0` [name: 'offers_max_discount_check']
+    `valid_to >= valid_from` [name: 'offers_validity_check']
+  }
+}
+
+// =============================================================
+// 4. VENUES
+// =============================================================
+Table bms.venues {
+  venue_id integer [pk, not null]
+  venue_name varchar(100) [not null]
+  city_id integer [not null]
+  chain varchar(20) [not null]
+  address text [not null]
+
+  checks {
+    `chain IN ('PVR', 'INOX', 'Cinepolis', 'Miraj', 'Independent')` [name: 'venues_chain_check']
+  }
+}
+
+// =============================================================
+// 5. SCREENS
+// =============================================================
+Table bms.screens {
+  screen_id integer [pk, not null]
+  venue_id integer [not null]
+  screen_name varchar(20) [not null]
+  screen_type varchar(20) [not null]
+  total_seats smallint [not null]
+
+  checks {
+    `screen_type IN ('STANDARD', 'GOLD', 'IMAX', '4DX')` [name: 'screens_screen_type_check']
+    `total_seats > 0` [name: 'screens_total_seats_check']
+  }
+
+  indexes {
+    (venue_id, screen_name) [unique, name: 'uq_venue_screen']
+  }
+}
+
+// =============================================================
+// 6. SEATS
+// =============================================================
+Table bms.seats {
+  seat_id integer [pk, not null]
+  screen_id integer [not null]
+  row_label char(1) [not null]
+  seat_number smallint [not null]
+  seat_class varchar(20) [not null]
+
+  checks {
+    `row_label BETWEEN 'A' AND 'P'` [name: 'seats_row_label_check']
+    `seat_number > 0` [name: 'seats_seat_number_check']
+    `seat_class IN ('CLASSIC', 'PRIME', 'RECLINER')` [name: 'seats_seat_class_check']
+  }
+
+  indexes {
+    (screen_id, row_label, seat_number) [unique, name: 'uq_screen_seat_position']
+  }
+}
+
+// =============================================================
+// 7. SHOWS
+// =============================================================
+Table bms.shows {
+  show_id integer [pk, not null]
+  movie_id integer [not null]
+  screen_id integer [not null]
+  starts_at timestamptz [not null]
+  ends_at timestamptz [not null]
+  format varchar(10) [not null]
+  base_price numeric(12,2) [not null]
+
+  checks {
+    `ends_at > starts_at` [name: 'chk_show_time']
+    `format IN ('2D', '3D', 'IMAX', '4DX')` [name: 'shows_format_check']
+    `base_price >= 0` [name: 'shows_base_price_check']
+  }
+
+  Note: 'PostgreSQL also has the no_overlapping_shows EXCLUDE constraint. It uses GiST with screen_id and a half-open timestamp range to prevent overlapping shows on the same screen. It requires btree_gist.'
+}
+
+// =============================================================
+// 8. CUSTOMERS
+// =============================================================
+Table bms.customers {
+  customer_id integer [pk, not null]
+  full_name varchar(100) [not null]
+  email varchar(255) [not null, unique]
+  phone varchar(10) [not null, unique]
+  city_id integer [not null]
+  created_at timestamptz [not null]
+
+  checks {
+    `phone ~ '^[0-9]{10}$'` [name: 'customers_phone_check']
+  }
+}
+
+// =============================================================
+// 9. BOOKINGS
+// =============================================================
+Table bms.bookings {
+  booking_id integer [pk, not null]
+  booking_code varchar(10) [not null, unique]
+  customer_id integer [not null]
+  show_id integer [not null]
+  booked_at timestamptz [not null]
+  num_tickets smallint [not null]
+  ticket_amount numeric(12,2) [not null]
+  convenience_fee numeric(12,2) [not null]
+  fnb_amount numeric(12,2) [not null]
+  offer_code varchar(11) // Nullable: a booking may have no offer
+  discount numeric(12,2) [not null]
+  total_amount numeric(12,2) [not null]
+  payment_method varchar(20) [not null]
+  status varchar(20) [not null]
+
+  checks {
+    `booking_code ~ '^BMS[A-Z0-9]{7}$'` [name: 'bookings_booking_code_check']
+    `num_tickets > 0` [name: 'bookings_num_tickets_check']
+    `ticket_amount >= 0` [name: 'bookings_ticket_amount_check']
+    `convenience_fee >= 0` [name: 'bookings_convenience_fee_check']
+    `fnb_amount >= 0` [name: 'bookings_fnb_amount_check']
+    `discount >= 0` [name: 'bookings_discount_check']
+    `total_amount >= 0` [name: 'bookings_total_amount_check']
+    `payment_method IN ('UPI', 'CARD', 'GIFT_CARD', 'WALLET', 'NETBANKING')` [name: 'bookings_payment_method_check']
+    `status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'PAYMENT_FAILED')` [name: 'bookings_status_check']
+    `total_amount = ticket_amount + convenience_fee + fnb_amount - discount` [name: 'chk_booking_total']
+    `discount <= ticket_amount + convenience_fee + fnb_amount` [name: 'chk_discount_amount']
+    `offer_code IS NOT NULL OR discount = 0` [name: 'chk_booking_offer']
+  }
+
+  indexes {
+    (booking_id, show_id) [unique, name: 'uq_booking_show']
+  }
+}
+
+// =============================================================
+// 10. BOOKING_SEATS
+// =============================================================
+Table bms.booking_seats {
+  booking_id integer [not null]
+  show_id integer [not null]
+  seat_id integer [not null]
+  price numeric(12,2) [not null]
+
+  checks {
+    `price >= 0` [name: 'booking_seats_price_check']
+  }
+
+  indexes {
+    (show_id, seat_id) [pk, name: 'pk_booking_seats']
+  }
+}
+
+// =============================================================
+// 11. MOVIE_REVIEWS
+// =============================================================
+Table bms.movie_reviews {
+  review_id integer [pk, not null]
+  movie_id integer [not null]
+  customer_id integer [not null]
+  rating smallint [not null]
+  review_text text // Nullable: a rating may be submitted without text
+  created_at timestamptz [not null]
+
+  checks {
+    `rating BETWEEN 1 AND 10` [name: 'movie_reviews_rating_check']
+  }
+
+  indexes {
+    (movie_id, customer_id) [unique, name: 'uq_movie_customer_review']
+  }
+}
+
+// =============================================================
+// RELATIONSHIPS / FOREIGN KEYS
+// =============================================================
+
+Ref fk_venues_city: bms.venues.city_id > bms.cities.city_id [delete: restrict]
+Ref fk_screens_venue: bms.screens.venue_id > bms.venues.venue_id [delete: restrict]
+Ref fk_seats_screen: bms.seats.screen_id > bms.screens.screen_id [delete: restrict]
+Ref fk_shows_movie: bms.shows.movie_id > bms.movies.movie_id [delete: restrict]
+Ref fk_shows_screen: bms.shows.screen_id > bms.screens.screen_id [delete: restrict]
+Ref fk_customers_city: bms.customers.city_id > bms.cities.city_id [delete: restrict]
+Ref fk_bookings_customer: bms.bookings.customer_id > bms.customers.customer_id [delete: restrict]
+Ref fk_bookings_show: bms.bookings.show_id > bms.shows.show_id [delete: restrict]
+Ref fk_bookings_offer: bms.bookings.offer_code >? bms.offers.offer_code [delete: restrict]
+Ref fk_booking_seats_booking: bms.booking_seats.(booking_id, show_id) > bms.bookings.(booking_id, show_id) [delete: restrict]
+Ref fk_booking_seats_seat: bms.booking_seats.seat_id > bms.seats.seat_id [delete: restrict]
+Ref fk_reviews_movie: bms.movie_reviews.movie_id > bms.movies.movie_id [delete: restrict]
+Ref fk_reviews_customer: bms.movie_reviews.customer_id > bms.customers.customer_id [delete: restrict]

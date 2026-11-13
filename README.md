@@ -2,6 +2,7 @@
 
 **Course:** Database Management Systems · **Year:** B.Tech 2nd year · **Team size:** 4
 **Database:** PostgreSQL 15 or newer · **Final submission:** Mon 23 Nov 2026
+**Instructor:** [Instructor Name] · **Semester:** [3rd]
 **Topics used:** Data types & constraints · Keys & relationships · Normalization · Query execution plans · Indexing · Query optimization · VACUUM/ANALYZE · Partitioning & sharding
 
 ## Files in this folder
@@ -22,12 +23,12 @@
 
 | Role | Name | Enrollment No. | GitHub Username |
 |------|------|----------------|-----------------|
-| Group Lead | | | |
-| Member 2 | | | |
-| Member 3 | | | |
-| Member 4 | | | |
+| Group Lead | Vansh Kumar | 2501010563 | vanshkumar2025 |
+| Member 2 | Khush Gautam | 2501010220 | Khush-Gautam |
+| Member 3 | Anay Maheshwari | 2501010685 | anaymaheshwari762 |
+| Member 4 | Amrit Raj | 2501010052 | Amrit42-am |
 
-**Team No.:** ____ · **Section:** ____ · **Repository URL:** ____
+**Team No.:** T0112 · **Section:** C · **Repository URL:** https://github.com/vanshkumar2025/DE_Project_2026
 
 ---
 
